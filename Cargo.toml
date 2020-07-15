@@ -13,4 +13,4 @@ async-trait = "0.1.36"
 http-types = "2.2.1"
 
 [patch.crates-io]
-async-session = { path = "../async-session" }#git = "https://github.com/jbr/async-session", branch = "tide" }
+async-session = { git = "https://github.com/jbr/async-session", branch = "tide" }
