@@ -1,4 +1,4 @@
-use async_session::{async_trait, base64, serde_json, utils, Session, SessionStore};
+use async_session::{async_trait, base64, serde_json, Session, SessionStore};
 use redis::{AsyncCommands, Client, RedisError};
 use std::time::Duration;
 
@@ -50,7 +50,7 @@ impl SessionStore for RedisSessionStore {
     type Error = Error;
 
     async fn load_session(&self, cookie_value: String) -> Option<Session> {
-        let id = utils::id_from_string(&cookie_value).ok()?;
+        let id = Session::id_from_cookie_value(&cookie_value).ok()?;
         let mut connection = self.connection().await.ok()?;
         match connection.get::<_, Option<String>>(id).await.ok()? {
             Some(value) => serde_json::from_str(&value).ok()?,
