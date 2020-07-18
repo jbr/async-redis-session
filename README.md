@@ -1,13 +1,17 @@
 # async-redis-session
 ## redis-backed session store for [async-session](https://github.com/http-rs/async-session)
 
-## ⚠️ Note: This crate is not yet published, so nothing in this readme will actually work yet ⚠️
-check out the status of https://github.com/http-rs/async-session/pull/2 for the latest
+## ⚠️ Note: This crate is not yet published ⚠️
+So most of the links in this readme will not work yet. Check out the
+status of https://github.com/http-rs/async-session/pull/2 for the
+latest
 
+* CI: ![CI][ci-badge]
 * [API Docs][docs] [![docs.rs docs][docs-badge]][docs]
 * [Releases][releases] [![crates.io version][version-badge]][lib-rs]
 * [Contributing][contributing]
 
+[ci-badge] https://github.com/jbr/async-redis-session/workflows/CI/badge.svg
 [releases] https://github.com/jbr/async-redis-session/releases
 [docs] https://docs.rs/async-redis-session
 [contributing] https://github.com/jbr/async-redis-session/blob/master/.github/CONTRIBUTING.md
