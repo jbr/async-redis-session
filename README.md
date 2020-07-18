@@ -6,11 +6,12 @@ So most of the links in this readme will not work yet. Check out the
 status of https://github.com/http-rs/async-session/pull/2 for the
 latest
 
-* CI: ![CI][ci-badge]
+* [CI ![CI][ci-badge]][ci]
 * [API Docs][docs] [![docs.rs docs][docs-badge]][docs]
 * [Releases][releases] [![crates.io version][version-badge]][lib-rs]
 * [Contributing][contributing]
 
+[ci]: https://github.com/jbr/async-redis-session/actions?query=workflow%3ACI
 [ci-badge]: https://github.com/jbr/async-redis-session/workflows/CI/badge.svg
 [releases]: https://github.com/jbr/async-redis-session/releases
 [docs]: https://docs.rs/async-redis-session
