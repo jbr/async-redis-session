@@ -11,13 +11,13 @@ latest
 * [Releases][releases] [![crates.io version][version-badge]][lib-rs]
 * [Contributing][contributing]
 
-[ci-badge] https://github.com/jbr/async-redis-session/workflows/CI/badge.svg
-[releases] https://github.com/jbr/async-redis-session/releases
-[docs] https://docs.rs/async-redis-session
-[contributing] https://github.com/jbr/async-redis-session/blob/master/.github/CONTRIBUTING.md
-[lib-rs] https://lib.rs/async-redis-session
-[docs-badge] https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square
-[version-badge] https://img.shields.io/crates/v/async-redis-session.svg?style=flat-square
+[ci-badge]: https://github.com/jbr/async-redis-session/workflows/CI/badge.svg
+[releases]: https://github.com/jbr/async-redis-session/releases
+[docs]: https://docs.rs/async-redis-session
+[contributing]: https://github.com/jbr/async-redis-session/blob/master/.github/CONTRIBUTING.md
+[lib-rs]: https://lib.rs/async-redis-session
+[docs-badge]: https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square
+[version-badge]: https://img.shields.io/crates/v/async-redis-session.svg?style=flat-square
 
 ## Installation
 ```sh
