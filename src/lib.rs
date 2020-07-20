@@ -7,11 +7,11 @@
 //! let store = RedisSessionStore::new("redis://127.0.0.1/")?;
 //!
 //! let session = Session::new();
-//! session.insert("key".into(), "value".into());
+//! session.insert("key", "value")?;
 //!
 //! let cookie_value = store.store_session(session).await.unwrap();
 //! let session = store.load_session(cookie_value).await.unwrap();
-//! assert_eq!(session.get("key").unwrap(), "value");
+//! assert_eq!(&session.get::<String>("key").unwrap(), "value");
 //! # Ok(()) }) }
 //! ```
 
@@ -181,13 +181,13 @@ mod tests {
     async fn creating_a_new_session_with_no_expiry() -> Result {
         let store = test_store().await;
         let session = Session::new();
-        session.insert("key".into(), "value".into());
+        session.insert("key", "value")?;
         let cloned = session.clone();
         let cookie_value = store.store_session(session).await.unwrap();
 
         let loaded_session = store.load_session(cookie_value).await.unwrap();
         assert_eq!(cloned.id(), loaded_session.id());
-        assert_eq!("value", loaded_session.get("key").unwrap());
+        assert_eq!("value", &loaded_session.get::<String>("key").unwrap());
 
         assert!(!loaded_session.is_expired());
         Ok(())
@@ -198,15 +198,15 @@ mod tests {
         let store = test_store().await;
         let session = Session::new();
 
-        session.insert("key".into(), "value".into());
+        session.insert("key", "value")?;
         let cookie_value = store.store_session(session).await.unwrap();
 
         let session = store.load_session(cookie_value.clone()).await.unwrap();
-        session.insert("key".into(), "other value".into());
+        session.insert("key", "other value")?;
         assert_eq!(None, store.store_session(session).await);
 
         let session = store.load_session(cookie_value.clone()).await.unwrap();
-        assert_eq!(session.get("key").unwrap(), "other value");
+        assert_eq!(&session.get::<String>("key").unwrap(), "other value");
 
         assert_eq!(1, store.count().await.unwrap());
         Ok(())
@@ -247,7 +247,7 @@ mod tests {
         let store = test_store().await;
         let mut session = Session::new();
         session.expire_in(Duration::from_secs(3));
-        session.insert("key".into(), "value".into());
+        session.insert("key", "value")?;
         let cloned = session.clone();
 
         let cookie_value = store.store_session(session).await.unwrap();
@@ -256,7 +256,7 @@ mod tests {
 
         let loaded_session = store.load_session(cookie_value.clone()).await.unwrap();
         assert_eq!(cloned.id(), loaded_session.id());
-        assert_eq!("value", loaded_session.get("key").unwrap());
+        assert_eq!("value", &loaded_session.get::<String>("key").unwrap());
 
         assert!(!loaded_session.is_expired());
 
@@ -312,15 +312,15 @@ mod tests {
 
         let session = Session::new();
 
-        session.insert("key".into(), "value".into());
+        session.insert("key", "value")?;
         let cookie_value = store.store_session(session).await.unwrap();
 
         let session = store.load_session(cookie_value.clone()).await.unwrap();
-        session.insert("key".into(), "other value".into());
+        session.insert("key", "other value")?;
         assert_eq!(None, store.store_session(session).await);
 
         let session = store.load_session(cookie_value.clone()).await.unwrap();
-        assert_eq!(session.get("key").unwrap(), "other value");
+        assert_eq!(&session.get::<String>("key").unwrap(), "other value");
 
         assert_eq!(4, store.count().await.unwrap());
 
