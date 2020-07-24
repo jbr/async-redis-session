@@ -25,7 +25,7 @@
     unused_qualifications
 )]
 
-use async_session::{async_trait, id_from_cookie_value, serde_json, Result, Session, SessionStore};
+use async_session::{async_trait, serde_json, Result, Session, SessionStore};
 use redis::{aio::Connection, AsyncCommands, Client, IntoConnectionInfo, RedisResult};
 
 /// # RedisSessionStore
@@ -116,7 +116,7 @@ impl RedisSessionStore {
 #[async_trait]
 impl SessionStore for RedisSessionStore {
     async fn load_session(&self, cookie_value: String) -> Option<Session> {
-        let id = id_from_cookie_value(&cookie_value).ok()?;
+        let id = Session::id_from_cookie_value(&cookie_value).ok()?;
         let mut connection = self.connection().await.ok()?;
         let record: Option<String> = connection.get(self.prefix_key(id)).await.ok()?;
         match record {
