@@ -6,7 +6,7 @@
 //! # fn main() -> async_session::Result { async_std::task::block_on(async {
 //! let store = RedisSessionStore::new("redis://127.0.0.1/")?;
 //!
-//! let session = Session::new();
+//! let mut session = Session::new();
 //! session.insert("key", "value")?;
 //!
 //! let cookie_value = store.store_session(session).await.unwrap();
@@ -25,7 +25,7 @@
     unused_qualifications
 )]
 
-use async_session::{async_trait, serde_json, Result, Session, SessionStore};
+use async_session::{async_trait, id_from_cookie_value, serde_json, Result, Session, SessionStore};
 use redis::{aio::Connection, AsyncCommands, Client, IntoConnectionInfo, RedisResult};
 
 /// # RedisSessionStore
@@ -116,7 +116,7 @@ impl RedisSessionStore {
 #[async_trait]
 impl SessionStore for RedisSessionStore {
     async fn load_session(&self, cookie_value: String) -> Option<Session> {
-        let id = Session::id_from_cookie_value(&cookie_value).ok()?;
+        let id = id_from_cookie_value(&cookie_value).ok()?;
         let mut connection = self.connection().await.ok()?;
         let record: Option<String> = connection.get(self.prefix_key(id)).await.ok()?;
         match record {
@@ -180,7 +180,7 @@ mod tests {
     #[async_std::test]
     async fn creating_a_new_session_with_no_expiry() -> Result {
         let store = test_store().await;
-        let session = Session::new();
+        let mut session = Session::new();
         session.insert("key", "value")?;
         let cloned = session.clone();
         let cookie_value = store.store_session(session).await.unwrap();
@@ -196,12 +196,12 @@ mod tests {
     #[async_std::test]
     async fn updating_a_session() -> Result {
         let store = test_store().await;
-        let session = Session::new();
+        let mut session = Session::new();
 
         session.insert("key", "value")?;
         let cookie_value = store.store_session(session).await.unwrap();
 
-        let session = store.load_session(cookie_value.clone()).await.unwrap();
+        let mut session = store.load_session(cookie_value.clone()).await.unwrap();
         session.insert("key", "other value")?;
         assert_eq!(None, store.store_session(session).await);
 
@@ -310,12 +310,12 @@ mod tests {
             store.store_session(Session::new()).await;
         }
 
-        let session = Session::new();
+        let mut session = Session::new();
 
         session.insert("key", "value")?;
         let cookie_value = store.store_session(session).await.unwrap();
 
-        let session = store.load_session(cookie_value.clone()).await.unwrap();
+        let mut session = store.load_session(cookie_value.clone()).await.unwrap();
         session.insert("key", "other value")?;
         assert_eq!(None, store.store_session(session).await);
 
