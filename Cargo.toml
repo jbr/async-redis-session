@@ -6,10 +6,7 @@ edition = "2018"
 
 [dependencies]
 redis = { version = "0.16.0", features = ["aio"] }
-async-session = "1.0.2"
+async-session = "2.0.0"
 
 [dev-dependencies]
 async-std = { version = "1.6.2", features = ["attributes"] }
-
-[patch.crates-io]
-async-session = { git = "https://github.com/jbr/async-session", branch = "tide" }
