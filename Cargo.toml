@@ -11,9 +11,12 @@ license = "MIT OR Apache-2.0"
 keywords = ["sessions", "tide", "async-session", "redis"]
 categories = ["web-programming::http-server", "web-programming", "database"]
 
+[dependencies.redis]
+version = "0.20.1"
+features = ["aio", "async-std-comp"]
+
 [dependencies]
-redis = { version = "0.17.0", features = ["aio"] }
-async-session = "3.0.0"
+async-session = "2.0.1"
 
 [dev-dependencies]
-async-std = { version = "1.6.2", features = ["attributes"] }
+async-std = { version = "1.9.0", features = ["attributes"] }
