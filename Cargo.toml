@@ -16,7 +16,7 @@ version = "0.20.1"
 features = ["aio", "async-std-comp"]
 
 [dependencies]
-async-session = "2.0.1"
+async-session = "3.0.0"
 
 [dev-dependencies]
 async-std = { version = "1.9.0", features = ["attributes"] }
