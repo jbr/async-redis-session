@@ -111,6 +111,18 @@ impl RedisSessionStore {
     async fn connection(&self) -> RedisResult<Connection> {
         self.client.get_async_std_connection().await
     }
+
+    /// Connects to Redis server to ensure connection is healthy. Returns a [`redis::Error`] if not.
+    /// ```rust
+    /// # use async_redis_session::RedisSessionStore;
+    /// let store = RedisSessionStore::new("redis://127.0.0.1").unwrap();
+    /// let result = store.ping();
+    /// ```
+    pub async fn ping(&self) -> Result<()> {
+        self.connection().await?;
+
+        Ok(())
+    }
 }
 
 #[async_trait]
