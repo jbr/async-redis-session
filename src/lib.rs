@@ -119,7 +119,7 @@ impl RedisSessionStore {
     /// let result = store.ping();
     /// ```
     pub async fn ping(&self) -> Result<()> {
-        self.client.get_async_std_connection().await?;
+        self.connection().await?;
 
         Ok(())
     }
