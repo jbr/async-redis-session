@@ -11,12 +11,11 @@ license = "MIT OR Apache-2.0"
 keywords = ["sessions", "tide", "async-session", "redis"]
 categories = ["web-programming::http-server", "web-programming", "database"]
 
-[dependencies.redis]
-version = "0.21.0"
-features = ["aio", "async-std-comp"]
-
 [dependencies]
 async-session = "3.0.0"
+redis = { version = "0.22.1", features = ["tokio-comp", "connection-manager"] }
 
 [dev-dependencies]
-async-std = { version = "1.9.0", features = ["attributes"] }
+ulid = "1.0.0"
+tokio = { version = "1.22", features = ["full"] }
+tokio-test = "0.4.2"
