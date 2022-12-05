@@ -3,7 +3,7 @@
 //! use async_redis_session::RedisSessionStore;
 //! use async_session::{Session, SessionStore};
 //!
-//! # fn main() -> async_session::Result { async_std::task::block_on(async {
+//! # fn main() -> async_session::Result { tokio_test::block_on(async {
 //! let store = RedisSessionStore::from_uri("redis://127.0.0.1/", None).await?;
 //!
 //! let mut session = Session::new();
@@ -67,7 +67,7 @@ impl RedisSessionStore {
     /// such as a [`String`], [`&str`](str), or [`Url`](../url/struct.Url.html)
     /// ```rust
     /// # use async_redis_session::RedisSessionStore;
-    /// fn main() -> async_session::Result { async_std::task::block_on(async {
+    /// fn main() -> async_session::Result { tokio_test::block_on(async {
     ///     let client = redis::Client::open("redis://127.0.0.1").unwrap();
     ///     let connection_manager = redis::aio::ConnectionManager::new(client).await.unwrap();
     ///     let store = RedisSessionStore::new(connection_manager, None);
@@ -83,7 +83,7 @@ impl RedisSessionStore {
     ///
     /// ```rust
     /// # use async_redis_session::RedisSessionStore;
-    /// fn main() -> async_session::Result { async_std::task::block_on(async {
+    /// fn main() -> async_session::Result { tokio_test::block_on(async {
     /// let store = RedisSessionStore::from_uri("redis://127.0.0.1", None).await.unwrap()
     ///     .with_prefix("async-sessions/");
     /// Ok(()) }) }
@@ -260,21 +260,21 @@ impl SessionStore for RedisSessionStore {
 
 #[cfg(test)]
 mod tests {
-    use async_std::task;
-    use std::time::Duration;
-    use ulid::Ulid;
+    use redis::Client;
+    use tokio::time::{sleep, Duration};
 
     use super::*;
 
     async fn test_store() -> RedisSessionStore {
-        let store = RedisSessionStore::from_uri("redis://127.0.0.1", Some(Ulid::new().to_string()))
-            .await
-            .unwrap();
+        let store =
+            RedisSessionStore::from_uri("redis://127.0.0.1", Some(ulid::Ulid::new().to_string()))
+                .await
+                .unwrap();
         store.clear_store().await.unwrap();
         store
     }
 
-    #[async_std::test]
+    #[tokio::test]
     async fn creating_a_new_session_with_no_expiry() -> Result {
         let store = test_store().await;
         let mut session = Session::new();
@@ -290,7 +290,7 @@ mod tests {
         Ok(())
     }
 
-    #[async_std::test]
+    #[tokio::test]
     async fn updating_a_session() -> Result {
         let store = test_store().await;
         let mut session = Session::new();
@@ -309,7 +309,7 @@ mod tests {
         Ok(())
     }
 
-    #[async_std::test]
+    #[tokio::test]
     async fn updating_a_session_extending_expiry() -> Result {
         let store = test_store().await;
         let mut session = Session::new();
@@ -333,13 +333,13 @@ mod tests {
 
         assert_eq!(1, store.count().await.unwrap());
 
-        task::sleep(Duration::from_secs(10)).await;
+        sleep(Duration::from_secs(10)).await;
         assert_eq!(0, store.count().await.unwrap());
 
         Ok(())
     }
 
-    #[async_std::test]
+    #[tokio::test]
     async fn creating_a_new_session_with_expiry() -> Result {
         let store = test_store().await;
         let mut session = Session::new();
@@ -357,13 +357,13 @@ mod tests {
 
         assert!(!loaded_session.is_expired());
 
-        task::sleep(Duration::from_secs(2)).await;
+        sleep(Duration::from_secs(2)).await;
         assert_eq!(None, store.load_session(cookie_value).await?);
 
         Ok(())
     }
 
-    #[async_std::test]
+    #[tokio::test]
     async fn destroying_a_single_session() -> Result {
         let store = test_store().await;
         for _ in 0..3i8 {
@@ -382,7 +382,7 @@ mod tests {
         Ok(())
     }
 
-    #[async_std::test]
+    #[tokio::test]
     async fn clearing_the_whole_store() -> Result {
         let store = test_store().await;
         for _ in 0..3i8 {
@@ -396,13 +396,13 @@ mod tests {
         Ok(())
     }
 
-    #[async_std::test]
+    #[tokio::test]
     async fn prefixes() -> Result {
         test_store().await; // clear the db
 
-        let store = RedisSessionStore::from_uri("redis://127.0.0.1", Some("sessions/".to_string()))
-            .await
-            .unwrap();
+        let client = Client::open("redis://127.0.0.1").unwrap();
+        let cm = ConnectionManager::new(client).await.unwrap();
+        let store = RedisSessionStore::new(cm.clone(), Some("sessions/".to_string()));
 
         store.clear_store().await?;
 
@@ -424,10 +424,7 @@ mod tests {
 
         assert_eq!(4, store.count().await.unwrap());
 
-        let other_store =
-            RedisSessionStore::from_uri("redis://127.0.0.1", Some("other_namespace/".to_string()))
-                .await
-                .unwrap();
+        let other_store = RedisSessionStore::new(cm.clone(), Some("other_namespace/".to_string()));
 
         assert_eq!(0, other_store.count().await.unwrap());
         for _ in 0..3i8 {
