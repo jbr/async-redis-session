@@ -1,9 +1,9 @@
 //! # async-redis-session
 //! ```rust
-//! use async_redis_session::RedisSessionStore;
+//! use async_redis_session::{RedisSessionStore, Error};
 //! use async_session::{Session, SessionStore};
 //!
-//! # fn main() -> async_session::Result { async_std::task::block_on(async {
+//! # fn main() -> Result<(), Error> { async_std::task::block_on(async {
 //! let store = RedisSessionStore::new("redis://127.0.0.1/")?;
 //!
 //! let mut session = Session::new();
@@ -25,8 +25,26 @@
     unused_qualifications
 )]
 
-use async_session::{async_trait, serde_json, Result, Session, SessionStore};
+use async_session::{async_trait, Session, SessionStore};
 use redis::{aio::Connection, AsyncCommands, Client, IntoConnectionInfo, RedisResult};
+
+/// Errors that can arise in the operation of the session stores
+/// included in this crate
+#[derive(thiserror::Error, Debug)]
+#[non_exhaustive]
+pub enum Error {
+    /// an error that comes from sqlx
+    #[error(transparent)]
+    Redis(#[from] redis::RedisError),
+
+    /// an error that comes from serde_json
+    #[error(transparent)]
+    SerdeJson(#[from] serde_json::Error),
+
+    /// an error that comes from base64
+    #[error(transparent)]
+    Base64(#[from] base64::DecodeError),
+}
 
 /// # RedisSessionStore
 #[derive(Clone, Debug)]
@@ -77,12 +95,12 @@ impl RedisSessionStore {
         self
     }
 
-    async fn ids(&self) -> Result<Vec<String>> {
+    async fn ids(&self) -> Result<Vec<String>, Error> {
         Ok(self.connection().await?.keys(self.prefix_key("*")).await?)
     }
 
     /// returns the number of sessions in this store
-    pub async fn count(&self) -> Result<usize> {
+    pub async fn count(&self) -> Result<usize, Error> {
         if self.prefix.is_none() {
             let mut connection = self.connection().await?;
             Ok(redis::cmd("DBSIZE").query_async(&mut connection).await?)
@@ -92,7 +110,7 @@ impl RedisSessionStore {
     }
 
     #[cfg(test)]
-    async fn ttl_for_session(&self, session: &Session) -> Result<usize> {
+    async fn ttl_for_session(&self, session: &Session) -> Result<usize, Error> {
         Ok(self
             .connection()
             .await?
@@ -101,21 +119,24 @@ impl RedisSessionStore {
     }
 
     fn prefix_key(&self, key: impl AsRef<str>) -> String {
+        let key = key.as_ref();
         if let Some(ref prefix) = self.prefix {
-            format!("{}{}", prefix, key.as_ref())
+            format!("{prefix}{key}")
         } else {
-            key.as_ref().into()
+            key.to_string()
         }
     }
 
     async fn connection(&self) -> RedisResult<Connection> {
-        self.client.get_async_std_connection().await
+        self.client.get_async_connection().await
     }
 }
 
 #[async_trait]
 impl SessionStore for RedisSessionStore {
-    async fn load_session(&self, cookie_value: String) -> Result<Option<Session>> {
+    type Error = Error;
+
+    async fn load_session(&self, cookie_value: String) -> Result<Option<Session>, Self::Error> {
         let id = Session::id_from_cookie_value(&cookie_value)?;
         let mut connection = self.connection().await?;
         let record: Option<String> = connection.get(self.prefix_key(id)).await?;
@@ -125,7 +146,7 @@ impl SessionStore for RedisSessionStore {
         }
     }
 
-    async fn store_session(&self, session: Session) -> Result<Option<String>> {
+    async fn store_session(&self, session: Session) -> Result<Option<String>, Self::Error> {
         let id = self.prefix_key(session.id());
         let string = serde_json::to_string(&session)?;
 
@@ -144,14 +165,14 @@ impl SessionStore for RedisSessionStore {
         Ok(session.into_cookie_value())
     }
 
-    async fn destroy_session(&self, session: Session) -> Result {
+    async fn destroy_session(&self, session: Session) -> Result<(), Self::Error> {
         let mut connection = self.connection().await?;
-        let key = self.prefix_key(session.id().to_string());
+        let key = self.prefix_key(session.id());
         connection.del(key).await?;
         Ok(())
     }
 
-    async fn clear_store(&self) -> Result {
+    async fn clear_store(&self) -> Result<(), Self::Error> {
         let mut connection = self.connection().await?;
 
         if self.prefix.is_none() {
@@ -179,7 +200,7 @@ mod tests {
     }
 
     #[async_std::test]
-    async fn creating_a_new_session_with_no_expiry() -> Result {
+    async fn creating_a_new_session_with_no_expiry() -> Result<(), Error> {
         let store = test_store().await;
         let mut session = Session::new();
         session.insert("key", "value")?;
@@ -195,7 +216,7 @@ mod tests {
     }
 
     #[async_std::test]
-    async fn updating_a_session() -> Result {
+    async fn updating_a_session() -> Result<(), Error> {
         let store = test_store().await;
         let mut session = Session::new();
 
@@ -214,11 +235,11 @@ mod tests {
     }
 
     #[async_std::test]
-    async fn updating_a_session_extending_expiry() -> Result {
+    async fn updating_a_session_extending_expiry() -> Result<(), Error> {
         let store = test_store().await;
         let mut session = Session::new();
         session.expire_in(Duration::from_secs(5));
-        let original_expires = session.expiry().unwrap().clone();
+        let original_expires = *session.expiry().unwrap();
         let cookie_value = store.store_session(session).await?.unwrap();
 
         let mut session = store.load_session(cookie_value.clone()).await?.unwrap();
@@ -227,7 +248,7 @@ mod tests {
 
         assert_eq!(session.expiry().unwrap(), &original_expires);
         session.expire_in(Duration::from_secs(10));
-        let new_expires = session.expiry().unwrap().clone();
+        let new_expires = *session.expiry().unwrap();
         store.store_session(session).await?;
 
         let session = store.load_session(cookie_value.clone()).await?.unwrap();
@@ -244,7 +265,7 @@ mod tests {
     }
 
     #[async_std::test]
-    async fn creating_a_new_session_with_expiry() -> Result {
+    async fn creating_a_new_session_with_expiry() -> Result<(), Error> {
         let store = test_store().await;
         let mut session = Session::new();
         session.expire_in(Duration::from_secs(3));
@@ -268,7 +289,7 @@ mod tests {
     }
 
     #[async_std::test]
-    async fn destroying_a_single_session() -> Result {
+    async fn destroying_a_single_session() -> Result<(), Error> {
         let store = test_store().await;
         for _ in 0..3i8 {
             store.store_session(Session::new()).await?;
@@ -287,7 +308,7 @@ mod tests {
     }
 
     #[async_std::test]
-    async fn clearing_the_whole_store() -> Result {
+    async fn clearing_the_whole_store() -> Result<(), Error> {
         let store = test_store().await;
         for _ in 0..3i8 {
             store.store_session(Session::new()).await?;
@@ -301,7 +322,7 @@ mod tests {
     }
 
     #[async_std::test]
-    async fn prefixes() -> Result {
+    async fn prefixes() -> Result<(), Error> {
         test_store().await; // clear the db
 
         let store = RedisSessionStore::new("redis://127.0.0.1")?.with_prefix("sessions/");
