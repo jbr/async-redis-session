@@ -9,8 +9,8 @@
 //! let mut session = Session::new();
 //! session.insert("key", "value")?;
 //!
-//! let cookie_value = store.store_session(session).await?.unwrap();
-//! let session = store.load_session(cookie_value).await?.unwrap();
+//! let cookie_value = store.store_session(&mut session).await?.unwrap();
+//! let session = store.load_session(&cookie_value).await?.unwrap();
 //! assert_eq!(&session.get::<String>("key").unwrap(), "value");
 //! # Ok(()) }) }
 //! ```
@@ -136,8 +136,8 @@ impl RedisSessionStore {
 impl SessionStore for RedisSessionStore {
     type Error = Error;
 
-    async fn load_session(&self, cookie_value: String) -> Result<Option<Session>, Self::Error> {
-        let id = Session::id_from_cookie_value(&cookie_value)?;
+    async fn load_session(&self, cookie_value: &str) -> Result<Option<Session>, Self::Error> {
+        let id = Session::id_from_cookie_value(cookie_value)?;
         let mut connection = self.connection().await?;
         let record: Option<String> = connection.get(self.prefix_key(id)).await?;
         match record {
@@ -146,7 +146,7 @@ impl SessionStore for RedisSessionStore {
         }
     }
 
-    async fn store_session(&self, session: Session) -> Result<Option<String>, Self::Error> {
+    async fn store_session(&self, session: &mut Session) -> Result<Option<String>, Self::Error> {
         let id = self.prefix_key(session.id());
         let string = serde_json::to_string(&session)?;
 
@@ -162,10 +162,10 @@ impl SessionStore for RedisSessionStore {
             }
         };
 
-        Ok(session.into_cookie_value())
+        Ok(session.take_cookie_value())
     }
 
-    async fn destroy_session(&self, session: Session) -> Result<(), Self::Error> {
+    async fn destroy_session(&self, session: &mut Session) -> Result<(), Self::Error> {
         let mut connection = self.connection().await?;
         let key = self.prefix_key(session.id());
         connection.del(key).await?;
@@ -205,9 +205,9 @@ mod tests {
         let mut session = Session::new();
         session.insert("key", "value")?;
         let cloned = session.clone();
-        let cookie_value = store.store_session(session).await?.unwrap();
+        let cookie_value = store.store_session(&mut session).await?.unwrap();
 
-        let loaded_session = store.load_session(cookie_value).await?.unwrap();
+        let loaded_session = store.load_session(&cookie_value).await?.unwrap();
         assert_eq!(cloned.id(), loaded_session.id());
         assert_eq!("value", &loaded_session.get::<String>("key").unwrap());
 
@@ -221,13 +221,13 @@ mod tests {
         let mut session = Session::new();
 
         session.insert("key", "value")?;
-        let cookie_value = store.store_session(session).await?.unwrap();
+        let cookie_value = store.store_session(&mut session).await?.unwrap();
 
-        let mut session = store.load_session(cookie_value.clone()).await?.unwrap();
+        let mut session = store.load_session(&cookie_value).await?.unwrap();
         session.insert("key", "other value")?;
-        assert_eq!(None, store.store_session(session).await?);
+        assert_eq!(None, store.store_session(&mut session).await?);
 
-        let session = store.load_session(cookie_value.clone()).await?.unwrap();
+        let session = store.load_session(&cookie_value).await?.unwrap();
         assert_eq!(&session.get::<String>("key").unwrap(), "other value");
 
         assert_eq!(1, store.count().await.unwrap());
@@ -240,18 +240,18 @@ mod tests {
         let mut session = Session::new();
         session.expire_in(Duration::from_secs(5));
         let original_expires = *session.expiry().unwrap();
-        let cookie_value = store.store_session(session).await?.unwrap();
+        let cookie_value = store.store_session(&mut session).await?.unwrap();
 
-        let mut session = store.load_session(cookie_value.clone()).await?.unwrap();
+        let mut session = store.load_session(&cookie_value).await?.unwrap();
         let ttl = store.ttl_for_session(&session).await?;
         assert!(ttl > 3 && ttl < 5);
 
         assert_eq!(session.expiry().unwrap(), &original_expires);
         session.expire_in(Duration::from_secs(10));
         let new_expires = *session.expiry().unwrap();
-        store.store_session(session).await?;
+        store.store_session(&mut session).await?;
 
-        let session = store.load_session(cookie_value.clone()).await?.unwrap();
+        let session = store.load_session(&cookie_value).await?.unwrap();
         let ttl = store.ttl_for_session(&session).await?;
         assert!(ttl > 8 && ttl < 10);
         assert_eq!(session.expiry().unwrap(), &new_expires);
@@ -272,18 +272,18 @@ mod tests {
         session.insert("key", "value")?;
         let cloned = session.clone();
 
-        let cookie_value = store.store_session(session).await?.unwrap();
+        let cookie_value = store.store_session(&mut session).await?.unwrap();
 
         assert!(store.ttl_for_session(&cloned).await? > 1);
 
-        let loaded_session = store.load_session(cookie_value.clone()).await?.unwrap();
+        let loaded_session = store.load_session(&cookie_value).await?.unwrap();
         assert_eq!(cloned.id(), loaded_session.id());
         assert_eq!("value", &loaded_session.get::<String>("key").unwrap());
 
         assert!(!loaded_session.is_expired());
 
         task::sleep(Duration::from_secs(2)).await;
-        assert_eq!(None, store.load_session(cookie_value).await?);
+        assert_eq!(None, store.load_session(&cookie_value).await?);
 
         Ok(())
     }
@@ -292,18 +292,18 @@ mod tests {
     async fn destroying_a_single_session() -> Result<(), Error> {
         let store = test_store().await;
         for _ in 0..3i8 {
-            store.store_session(Session::new()).await?;
+            store.store_session(&mut Session::new()).await?;
         }
 
-        let cookie = store.store_session(Session::new()).await?.unwrap();
+        let cookie = store.store_session(&mut Session::new()).await?.unwrap();
         assert_eq!(4, store.count().await?);
-        let session = store.load_session(cookie.clone()).await?.unwrap();
-        store.destroy_session(session.clone()).await.unwrap();
-        assert_eq!(None, store.load_session(cookie).await?);
+        let mut session = store.load_session(&cookie).await?.unwrap();
+        store.destroy_session(&mut session).await.unwrap();
+        assert_eq!(None, store.load_session(&cookie).await?);
         assert_eq!(3, store.count().await?);
 
         // attempting to destroy the session again is not an error
-        assert!(store.destroy_session(session).await.is_ok());
+        assert!(store.destroy_session(&mut session).await.is_ok());
         Ok(())
     }
 
@@ -311,7 +311,7 @@ mod tests {
     async fn clearing_the_whole_store() -> Result<(), Error> {
         let store = test_store().await;
         for _ in 0..3i8 {
-            store.store_session(Session::new()).await?;
+            store.store_session(&mut Session::new()).await?;
         }
 
         assert_eq!(3, store.count().await?);
@@ -329,19 +329,19 @@ mod tests {
         store.clear_store().await?;
 
         for _ in 0..3i8 {
-            store.store_session(Session::new()).await?;
+            store.store_session(&mut Session::new()).await?;
         }
 
         let mut session = Session::new();
 
         session.insert("key", "value")?;
-        let cookie_value = store.store_session(session).await?.unwrap();
+        let cookie_value = store.store_session(&mut session).await?.unwrap();
 
-        let mut session = store.load_session(cookie_value.clone()).await?.unwrap();
+        let mut session = store.load_session(&cookie_value).await?.unwrap();
         session.insert("key", "other value")?;
-        assert_eq!(None, store.store_session(session).await?);
+        assert_eq!(None, store.store_session(&mut session).await?);
 
-        let session = store.load_session(cookie_value.clone()).await?.unwrap();
+        let session = store.load_session(&cookie_value).await?.unwrap();
         assert_eq!(&session.get::<String>("key").unwrap(), "other value");
 
         assert_eq!(4, store.count().await.unwrap());
@@ -351,7 +351,7 @@ mod tests {
 
         assert_eq!(0, other_store.count().await.unwrap());
         for _ in 0..3i8 {
-            other_store.store_session(Session::new()).await?;
+            other_store.store_session(&mut Session::new()).await?;
         }
 
         other_store.clear_store().await?;
