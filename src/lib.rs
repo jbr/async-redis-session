@@ -1,4 +1,3 @@
-
 //! # async-redis-session
 //! ```rust
 //! use async_redis_session::{RedisSessionStore, Error};
