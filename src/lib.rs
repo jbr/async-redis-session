@@ -1,3 +1,4 @@
+
 //! # async-redis-session
 //! ```rust
 //! use async_redis_session::{RedisSessionStore, Error};
@@ -204,11 +205,10 @@ mod tests {
         let store = test_store().await;
         let mut session = Session::new();
         session.insert("key", "value")?;
-        let cloned = session.clone();
         let cookie_value = store.store_session(&mut session).await?.unwrap();
 
         let loaded_session = store.load_session(&cookie_value).await?.unwrap();
-        assert_eq!(cloned.id(), loaded_session.id());
+        assert_eq!(session.id(), loaded_session.id());
         assert_eq!("value", &loaded_session.get::<String>("key").unwrap());
 
         assert!(!loaded_session.is_expired());
@@ -270,14 +270,13 @@ mod tests {
         let mut session = Session::new();
         session.expire_in(Duration::from_secs(3));
         session.insert("key", "value")?;
-        let cloned = session.clone();
 
         let cookie_value = store.store_session(&mut session).await?.unwrap();
 
-        assert!(store.ttl_for_session(&cloned).await? > 1);
+        assert!(store.ttl_for_session(&session).await? > 1);
 
         let loaded_session = store.load_session(&cookie_value).await?.unwrap();
-        assert_eq!(cloned.id(), loaded_session.id());
+        assert_eq!(session.id(), loaded_session.id());
         assert_eq!("value", &loaded_session.get::<String>("key").unwrap());
 
         assert!(!loaded_session.is_expired());
