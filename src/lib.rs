@@ -146,7 +146,7 @@ impl SessionStore for RedisSessionStore {
 
     async fn destroy_session(&self, session: Session) -> Result {
         let mut connection = self.connection().await?;
-        let key = self.prefix_key(session.id().to_string());
+        let key = self.prefix_key(session.id());
         connection.del(key).await?;
         Ok(())
     }
