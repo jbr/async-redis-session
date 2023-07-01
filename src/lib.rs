@@ -113,7 +113,7 @@ impl RedisSessionStore {
     #[cfg(test)]
     async fn ttl_for_session(&self, session: &Session) -> Result<usize> {
         Ok(self
-            .execute_command(&mut Cmd::ttl(self.prefix_key(&session.id())))
+            .execute_command(&mut Cmd::ttl(self.prefix_key(session.id())))
             .await?)
     }
 
@@ -314,7 +314,7 @@ mod tests {
         let store = test_store().await;
         let mut session = Session::new();
         session.expire_in(Duration::from_secs(5));
-        let original_expires = session.expiry().unwrap().clone();
+        let original_expires = *session.expiry().unwrap();
         let cookie_value = store.store_session(session).await?.unwrap();
 
         let mut session = store.load_session(cookie_value.clone()).await?.unwrap();
@@ -323,7 +323,7 @@ mod tests {
 
         assert_eq!(session.expiry().unwrap(), &original_expires);
         session.expire_in(Duration::from_secs(10));
-        let new_expires = session.expiry().unwrap().clone();
+        let new_expires = *session.expiry().unwrap();
         store.store_session(session).await?;
 
         let session = store.load_session(cookie_value.clone()).await?.unwrap();
