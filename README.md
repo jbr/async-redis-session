@@ -11,11 +11,7 @@
 [ci]: https://github.com/jbr/async-redis-session/actions?query=workflow%3ACI
 [ci-badge]: https://github.com/jbr/async-redis-session/workflows/CI/badge.svg
 [releases]: https://github.com/jbr/async-redis-session/releases
-[docs]: https://docs.rs/async-redis-session
-[contributing]: https://github.com/jbr/async-redis-session/blob/master/.github/CONTRIBUTING.md
-[lib-rs]: https://lib.rs/async-redis-session
-[docs-badge]: https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square
-[version-badge]: https://img.shields.io/crates/v/async-redis-session.svg?style=flat-square
+[![coverage](https://codecov.io/gh/valorem-labs-inc/async-redis-session/branch/main/graph/badge.svg?token=8W5MEJQSW6)](https://codecov.io/gh/valorem-labs-inc/async-redis-session)
 
 ## Installation
 ```sh
