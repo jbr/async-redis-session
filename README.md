@@ -1,6 +1,8 @@
 # async-redis-session
 ## redis-backed session store for [async-session](https://github.com/http-rs/async-session)
 
+*Note the upstream version of this project is abandonware. This fork is intended to keep it alive and up to date.*
+
 * [CI ![CI][ci-badge]][ci]
 * [API Docs][docs] [![docs.rs docs][docs-badge]][docs]
 * [Releases][releases] [![crates.io version][version-badge]][lib-rs]
