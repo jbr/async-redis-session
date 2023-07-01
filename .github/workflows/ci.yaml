@@ -1,5 +1,7 @@
 name: CI
 
+# TODO(Modern rewrite of this pipeline)
+
 on:
   pull_request:
   push:
