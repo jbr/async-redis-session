@@ -1,17 +1,12 @@
 # async-redis-session
 ## redis-backed session store for [async-session](https://github.com/http-rs/async-session)
 
+[![CI][ci-badge]][ci] [![coverage](https://codecov.io/gh/valorem-labs-inc/async-redis-session/branch/main/graph/badge.svg?token=8W5MEJQSW6)](https://codecov.io/gh/valorem-labs-inc/async-redis-session)
+
+[ci]: https://github.com/valorem-labs-inc/async-redis-session/actions?query=workflow%3ACI
+[ci-badge]: https://github.com/valorem-labs-inc/async-redis-session/workflows/CI/badge.svg
+
 *Note the upstream version of this project is abandonware. This fork is intended to keep it alive and up to date.*
-
-* [CI ![CI][ci-badge]][ci]
-* [API Docs][docs] [![docs.rs docs][docs-badge]][docs]
-* [Releases][releases] [![crates.io version][version-badge]][lib-rs]
-* [Contributing][contributing]
-
-[ci]: https://github.com/jbr/async-redis-session/actions?query=workflow%3ACI
-[ci-badge]: https://github.com/jbr/async-redis-session/workflows/CI/badge.svg
-[releases]: https://github.com/jbr/async-redis-session/releases
-[![coverage](https://codecov.io/gh/valorem-labs-inc/async-redis-session/branch/main/graph/badge.svg?token=8W5MEJQSW6)](https://codecov.io/gh/valorem-labs-inc/async-redis-session)
 
 ## Installation
 ```sh
