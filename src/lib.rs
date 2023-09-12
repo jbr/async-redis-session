@@ -109,7 +109,7 @@ impl RedisSessionStore {
     }
 
     async fn connection(&self) -> RedisResult<Connection> {
-        self.client.get_async_std_connection().await
+        self.client.get_async_connection().await
     }
 }
 
@@ -155,6 +155,7 @@ impl SessionStore for RedisSessionStore {
         let mut connection = self.connection().await?;
 
         if self.prefix.is_none() {
+            // TODO Oops, we're clearing the whole database, this should not happen
             let _: () = redis::cmd("FLUSHDB").query_async(&mut connection).await?;
         } else {
             let ids = self.ids().await?;
@@ -169,8 +170,8 @@ impl SessionStore for RedisSessionStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use async_std::task;
     use std::time::Duration;
+    use tokio::time;
 
     async fn test_store() -> RedisSessionStore {
         let store = RedisSessionStore::new("redis://127.0.0.1").unwrap();
@@ -178,7 +179,7 @@ mod tests {
         store
     }
 
-    #[async_std::test]
+    #[tokio::test]
     async fn creating_a_new_session_with_no_expiry() -> Result {
         let store = test_store().await;
         let mut session = Session::new();
@@ -194,7 +195,7 @@ mod tests {
         Ok(())
     }
 
-    #[async_std::test]
+    #[tokio::test]
     async fn updating_a_session() -> Result {
         let store = test_store().await;
         let mut session = Session::new();
@@ -213,7 +214,7 @@ mod tests {
         Ok(())
     }
 
-    #[async_std::test]
+    #[tokio::test]
     async fn updating_a_session_extending_expiry() -> Result {
         let store = test_store().await;
         let mut session = Session::new();
@@ -237,13 +238,13 @@ mod tests {
 
         assert_eq!(1, store.count().await.unwrap());
 
-        task::sleep(Duration::from_secs(10)).await;
+        time::sleep(Duration::from_secs(10)).await;
         assert_eq!(0, store.count().await.unwrap());
 
         Ok(())
     }
 
-    #[async_std::test]
+    #[tokio::test]
     async fn creating_a_new_session_with_expiry() -> Result {
         let store = test_store().await;
         let mut session = Session::new();
@@ -261,13 +262,13 @@ mod tests {
 
         assert!(!loaded_session.is_expired());
 
-        task::sleep(Duration::from_secs(2)).await;
+        time::sleep(Duration::from_secs(2)).await;
         assert_eq!(None, store.load_session(cookie_value).await?);
 
         Ok(())
     }
 
-    #[async_std::test]
+    #[tokio::test]
     async fn destroying_a_single_session() -> Result {
         let store = test_store().await;
         for _ in 0..3i8 {
@@ -286,7 +287,7 @@ mod tests {
         Ok(())
     }
 
-    #[async_std::test]
+    #[tokio::test]
     async fn clearing_the_whole_store() -> Result {
         let store = test_store().await;
         for _ in 0..3i8 {
@@ -300,7 +301,7 @@ mod tests {
         Ok(())
     }
 
-    #[async_std::test]
+    #[tokio::test]
     async fn prefixes() -> Result {
         test_store().await; // clear the db
 
