@@ -12,7 +12,7 @@ keywords = ["sessions", "tide", "async-session", "redis"]
 categories = ["web-programming::http-server", "web-programming", "database"]
 
 [dependencies.redis]
-version = "0.22.1"
+version = "0.23.3"
 features = ["aio", "tokio-comp", "connection-manager"]
 
 [dependencies]
